@@ -107,6 +107,8 @@ Pengujian konektivitas IoT menggunakan broker publik gratis dan web client ([MQT
   ```json
   {"sleep_s": 10}
   ```
+### Screenshot file .pcap SSL/TLS di Wireshark
+<img width="1920" height="1080" alt="Wireshark Pcap TLS" src="https://github.com/user-attachments/assets/94de47bb-6a34-427d-aeb7-3472892a338e" />
 
 ---
 
