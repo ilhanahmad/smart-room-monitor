@@ -113,15 +113,7 @@ Pengujian konektivitas IoT menggunakan broker publik gratis dan web client ([MQT
 ---
 
 ## 5. Skema Rangkaian
-
-<!-- TEMPLATE: Sertakan gambar skema yang diekspor dari Fritzing, KiCad, atau diagram schematics -->
-*(Sisipkan gambar diagram skematik rangkaian di sini atau tautkan file ekspor)*
-
-```markdown
-![Skema Rangkaian](docs/schematic_diagram.png)
-```
-
----
+<img width="776" height="708" alt="image" src="https://github.com/user-attachments/assets/d9b70705-cf01-4eab-974d-0f78e8152253" />
 
 ## 6. Dokumentasi Rangkaian (Wokwi Simulator)
 
