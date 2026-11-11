@@ -133,9 +133,9 @@ Pengujian konektivitas IoT menggunakan broker publik gratis dan web client ([MQT
 
 <!-- TEMPLATE: Cantumkan link video demo di Google Drive / YouTube (Unlisted) -->
  **Tautan Video Demo:**
- - [Testing LED, Buzzer & Push Button)](https://drive.google.com/file/d/189wxdNXMGUa9cO9flG7Y2CKHakkJsPbu/view?usp=drive_link)
- - [Testing Sensor & OLED)](https://drive.google.com/file/d/1hldEvA-KUvR7SWs03KpiyYxqW1UW7rlK/view?usp=drive_link)
- - [Running All Test)](https://drive.google.com/file/d/1cAio3-ej7Kkb-AicLLU6ImPLsIG8X40Y/view?usp=drive_link)
+ - [Testing LED, Buzzer & Push Button](https://drive.google.com/file/d/189wxdNXMGUa9cO9flG7Y2CKHakkJsPbu/view?usp=drive_link)
+ - [Testing Sensor & OLED](https://drive.google.com/file/d/1hldEvA-KUvR7SWs03KpiyYxqW1UW7rlK/view?usp=drive_link)
+ - [Running All Test](https://drive.google.com/file/d/1cAio3-ej7Kkb-AicLLU6ImPLsIG8X40Y/view?usp=drive_link)
 
 **Alur Skenario Demo dalam Video:**
 1. **Inisialisasi & Konektivitas:** Menampilkan boot ESP32, koneksi Wi-Fi `Wokwi-GUEST`, handshake TLS port 8883 ke `broker.emqx.io`, dan status `"online"`.
@@ -149,25 +149,22 @@ Pengujian konektivitas IoT menggunakan broker publik gratis dan web client ([MQT
 ## 8. Catatan Singkat Desain (Design Notes)
 
 ### A. Keputusan Desain
-1. **Arsitektur Firmware Moduler & Non-Blocking:** Seluruh fungsi dibagi ke dalam modul fungsional terpisah (`sensor`, `alarm`, `display`). Pengambilan sampel dan transmisi MQTT menggunakan penjadwalan `millis()` tanpa penggunaan fungsi `delay()` yang memblokir prosesor, sehingga tombol *acknowledge* dan penerimaan pesan MQTT tetap responsif.
-2. **Logika Alarm Histeresis & Latching:** Alarm bahaya bersuara saat suhu $\ge \text{threshold}$. Saat tombol ditekan, status berubah menjadi *acknowledged* (buzzer senyap, LED merah menyala solid). Alarm baru dapat berbunyi kembali jika suhu turun di bawah ambang batas lalu naik kembali melampaui batas tersebut.
-3. **Keamanan Jaringan (TLS/SSL):** Menggunakan `WiFiClientSecure` pada port standar `8883` untuk enkripsi data telemetri di jaringan publik.
+1. **Arsitektur Firmware Modular & Non-Blocking:** Seluruh fungsi dibagi ke dalam modul fungsional terpisah (`sensor`, `alarm`, `display`). Pengambilan sampel dan transmisi MQTT menggunakan penjadwalan `millis()` tanpa penggunaan fungsi `delay()` yang memblokir pemrosesan program.
+2. **Logika Alarm:** Alarm triggered saat suhu $\ge \text{threshold}$. Saat tombol ditekan, status berubah menjadi *acknowledged* (buzzer mati, LED merah menyala). Alarm baru dapat berbunyi kembali jika suhu turun di bawah ambang batas lalu naik kembali melampaui batas tersebut.
+3. **Keamanan Jaringan (TLS/SSL):** Menggunakan `WiFiClientSecure` pada port standar `8883` untuk enkripsi data telemetri di jaringan publik yang dikirim ke broker MQTT agar data penting berbentuk `.json` tidak dapat dilihat secara gamblang pada lapisan jaringan.
 4. **Pemisahan Konteks Callback MQTT:** Perintah *sleep* tidak mematikan daya secara langsung di dalam fungsi `onMessage()`, melainkan ditandai via *flag* yang dieksekusi secara tertib di dalam `loop()` utama guna mencegah kegagalan stack TCP/IP MQTT.
+5. **Wokwi Simulator:** Keseluruhan sistem disimulasikan secara virtual melalui Wokwi melalui broker MQTT agar lebih praktis dan mempermudah proses pengerjaan hingga review/penilaian.
 
 ### B. Masalah yang Ditemui & Solusi Rekayasa
-1. **Keterbatasan Simulator Wokwi pada Siklus Flash & Pin EN:**
-   - *Kendala:* Menekan tombol stop/restart simulator di browser memformat ulang memori flash virtual Wokwi sehingga partisi NVS ikut terhapus, dan pin header `esp:EN` tidak disimulasikan secara elektrikal.
-   - *Solusi:* Validasi persistensi NVS dibuktikan melalui siklus *Hardware Deep Sleep Wakeup* (`esp_deep_sleep_start()`) yang mengeksekusi *system reboot* riil dari `setup()` (`[BOOT #2]`), mengosongkan RAM, dan memuat kembali data ambang suhu dari Flash NVS.
-2. **Unsigned Integer Underflow pada Inisialisasi `millis()`:**
-   - *Kendala:* Operasi `millis() - MQTT_RETRY_INTERVAL_MS` pada detik awal booting menyebabkan nilai *underflow* pada variabel `unsigned long`, mengunci upaya rekoneksi MQTT.
-   - *Solusi:* Menambahkan variabel penanda inisialisasi awal (`firstMqttAttempt`) untuk memicu koneksi pertama secara instan begitu jaringan Wi-Fi siap.
+1. **Keterbatasan Simulator Wokwi untuk Flash & Pin EN:**
+   - *Kendala:* Menekan tombol stop/restart simulator di browser memformat ulang memori flash virtual Wokwi sehingga partisi NVS ikut terhapus, dan pin header `esp:EN` tidak dapat disimulasikan secara elektrikal.
+   - *Solusi:* Validasi NVS dibuktikan melalui siklus *Hardware Deep Sleep Wakeup* (`esp_deep_sleep_start()`) yang mengeksekusi *system reboot* riil dari `setup()` (`[BOOT #2]`), mengosongkan RAM, dan memuat kembali data ambang suhu dari Flash NVS.
+2. **Keandalan dan Kestabilan Jaringan WiFi:**
+   - *Kendala:* Karena Wokwi Simulator yang digunakan adalah free plan, maka mulai dari proses compile (tergantung load server Wokwi) hingga performa WiFi-Guest (tidak stabil dan terkadang butuh waktu lama untuk connect) memerlukan sedikit waktu dan kesabaran untuk menunggu. 
+   - *Solusi:* Jika projek yang dikerjakan cukup berat dan kompleks, disarankan untuk upgrade ke plan berbayar untuk meningkatkan performa.
+3. **Keterbatasan Perhitungan Estimasi Konsumsi Arus:**
+   - *Kendala:* Tidak bisa menghitung estimasi konsumsi arus riil yang digunakan keseluruhan sistem karena projek dikerjakan secara virtual.
+   - *Solusi:* Selain mengerjakan secara virtual, juga merangkai fisik keseluruhan sistem agar dapat mengukur estimasi konsumsi arus riil.
 
-### C. Estimasi Konsumsi Arus (Fitur Deep Sleep)
-- **Kondisi Aktif (Wi-Fi TX & TLS Handshake):** $\approx 160\text{ mA} - 240\text{ mA}$ (puncak).
-- **Kondisi Deep Sleep:** CPU Xtensa dan subsistem radio mati; hanya domain RTC dan RTC slow memory yang dialiri daya: $\approx 10\text{ }\mu\text{A} - 15\text{ }\mu\text{A}$.
-- **Efisiensi:** Penggunaan siklus berkala pada baterai LiPo 2500 mAh mampu memperpanjang masa operasional perangkat hingga hitungan tahun dibandingkan mode selalu aktif.
-
-### D. Rencana Peningkatan (Jika Ada Waktu Lebih)
-1. **Validasi Root CA Broker:** Menyematkan sertifikat X.509 CA dari EMQX dan sinkronisasi SNTP untuk memvalidasi identitas broker secara penuh menggantikan `setInsecure()`.
-2. **Offline Buffer Storage (LittleFS):** Menyimpan data telemetri ke flash lokal ketika koneksi internet terputus dan mempublikasikannya secara otomatis saat koneksi pulih.
-3. **Filter Digital Pembacaan Sensor:** Mengimplementasikan *moving average filter* pada LDR dan DHT22 untuk mereduksi derau pembacaan di lingkungan berfluktuasi tinggi.
+### C. Rencana Peningkatan (Jika Ada Waktu Lebih)
+1. **Merangkai Fisik Keseluruhan Sistem:** Dengan merangkai fisik keseluruhan sistem setelah disimulasikan melalui Wokwi, maka keseluruhan sistem akan lebih optimal (termasuk perhitungan riil estimasi konsumsi arus).
